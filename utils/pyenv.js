@@ -145,13 +145,9 @@ class PyEnv {
         if (fs.existsSync(PyEnv.envLibPath)) {
             fs.rmSync(PyEnv.envLibPath, { recursive: true, force: true });
         }
-        fs.mkdirSync(PyEnv.envLibPath, { recursive: true });
         
-
         const parentEnvLibPath = path.dirname(PyEnv.envLibPath);
         await nativeUnzip(PyEnv.envBuildPyLib, parentEnvLibPath, true);
-            
-
 
         const pyenvDir = fs.readdirSync(parentEnvLibPath).find(dir => dir.startsWith('python-'));
         if (pyenvDir) {
