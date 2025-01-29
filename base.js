@@ -113,6 +113,18 @@ class JsonCache {
     save() {
         fs.writeFileSync(this._path, JSON.stringify(this._cachedData, null, 2));
     }
+
+    set(key, value) {
+        this._cachedData[key] = value;
+        this.save();
+    }
+
+    set_default(key, value) {
+        if (!this._cachedData[key]) {
+            this._cachedData[key] = value;
+            this.save();
+        }
+    }
 }
 
 /**
