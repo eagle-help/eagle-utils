@@ -78,33 +78,33 @@ class PluginConfig {
 
 
     static get path() {
-        if (!this._path) {
-            this._path = path.join(roamingPath, 'pluginConfig.json');
-            console.log("Plugin config path: ", this._path);
+        if (!PluginConfig._path) {
+            PluginConfig._path = path.join(roamingPath, 'pluginConfig.json');
+            console.log("Plugin config path: ", PluginConfig._path);
         }
-        return this._path;
+        return PluginConfig._path;
 
     }
 
     static get() {
-        if (!this._settingsCache) {
-            this._settingsCache = new JsonCache(this.path, true);
+        if (!PluginConfig._settingsCache) {
+            PluginConfig._settingsCache = new JsonCache(PluginConfig.path, true);
         }
-        return this._settingsCache.data;
+        return PluginConfig._settingsCache.data;
     }
 
     static set(key, value) {
-        _settingsCache.set(key, value);
-        _settingsCache.save();
+        PluginConfig._settingsCache.set(key, value);
+        PluginConfig._settingsCache.save();
     }
 
     static set_default(key, defaultValue) {
-        _settingsCache.set_default(key, defaultValue);
-        _settingsCache.save();
+        PluginConfig._settingsCache.set_default(key, defaultValue);
+        PluginConfig._settingsCache.save();
     }
 
     static save() {
-        _settingsCache.save();
+        PluginConfig._settingsCache.save();
     }
 }
 
