@@ -6,10 +6,10 @@
     "name": "eagle-utils",
     "logo": "/logo.png",
     "keywords": [],
-    "devTools": false,
+    "devTools": true,
     "main": {
-        "serviceMode": true,
-        "url": "index.html",
+        "devTools": true,
+        "url": "js/index.html",
         "width": 640,
         "height": 480
     }
