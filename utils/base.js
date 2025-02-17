@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 /**
  * Caches function results based on input arguments
  * @function
