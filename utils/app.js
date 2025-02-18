@@ -7,10 +7,15 @@ function importUtil(name){
         name += '.js';
     }
 
-    if (fs.existsSync(path.join(path.dirname(eagle.plugin.path), 'utils', name))){
-        return require(path.join(path.dirname(eagle.plugin.path), 'utils', name));
-    } else if (fs.existsSync(path.join(eagle.plugin.path, 'utils', name))){
-        return require(path.join(eagle.plugin.path, 'utils', name));
+    let rootPath = path.dirname(eagle.plugin.path);
+    let manifestPath = path.join(rootPath, 'manifest.json');
+    while (!fs.existsSync(manifestPath)) {
+        rootPath = path.dirname(rootPath);
+        manifestPath = path.join(rootPath, 'manifest.json');
+    }
+
+    if (fs.existsSync(path.join(rootPath, 'utils', name))){
+        return require(path.join(rootPath, 'utils', name));
     } else {
         throw new Error(`${name} not found`);
     }
@@ -42,7 +47,6 @@ function importPath(filePath) {
 
     let pluginPath = path.dirname(eagle.plugin.path);
     let files = _getRecursTree(pluginPath);
-    console.log(files);
     let matchedFile;
     for (const file of files){
         if (file.includes(filePath)){
