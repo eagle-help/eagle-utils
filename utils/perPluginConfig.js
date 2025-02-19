@@ -109,8 +109,6 @@ class PerPluginConfig {
             PerPluginConfigInternal.typeSeparator,
             id,
             PerPluginConfigInternal.idSeparator,
-            eagle.plugin.manifest.id,
-            PerPluginConfigInternal.idSeparator,
             key
         ].join('');
     }
