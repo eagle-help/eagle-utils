@@ -17,6 +17,7 @@ class PerPluginConfigInternal {
     static idSeparator = "//";
     
     // Lock configuration (same as pluginConfig)
+    static useLock = false;
     static lockRetryInterval = 100;
     static lockMaxAge = 30;
     static #lockPath = path.join(path.dirname(__dirname), "perPluginConfig.lock");
@@ -45,6 +46,7 @@ class PerPluginConfigInternal {
     }
 
     static async #acquireLock() {
+        if (!this.useLock) return;
         if (this.#lockHolder === process.pid) return;
         
         const start = Date.now();
@@ -74,6 +76,7 @@ class PerPluginConfigInternal {
     }
 
     static #releaseLock() {
+        if (!this.useLock) return;
         try {
             if (this.#lockHolder === process.pid) {
                 fs.unlinkSync(this.#lockPath);
