@@ -1,6 +1,6 @@
 const { JsonCache } = require('./base');
 const path = require('path');
-const { roamingPath } = require('./app');
+const { getLibraryId, LibraryIDToPath } = require('./base');
 const fs = require('fs');
 
 class PerPluginConfigInternal {
@@ -19,14 +19,12 @@ class PerPluginConfigInternal {
     // Lock configuration (same as pluginConfig)
     static lockRetryInterval = 100;
     static lockMaxAge = 30;
-    static #lockPath = path.join(roamingPath, 'perPluginConfig.lock');
+    static #lockPath = path.join(path.dirname(__dirname), "perPluginConfig.lock");
     static #lockTimeout = 10000;
     static #lockHolder = null;
 
-    // Reuse lock implementation from pluginConfig
-    static #acquireLock = PluginConfigInternal.#acquireLock;
-    static #releaseLock = PluginConfigInternal.#releaseLock;
-
+    
+    
     static async getRaw() {
         await this.#acquireLock();
         try {
@@ -45,16 +43,63 @@ class PerPluginConfigInternal {
             this.#releaseLock();
         }
     }
+
+    static async #acquireLock() {
+        if (this.#lockHolder === process.pid) return;
+        
+        const start = Date.now();
+        while (fs.existsSync(this.#lockPath)) {
+            const stats = fs.statSync(this.#lockPath);
+            const lockAge = Date.now() - stats.ctimeMs;
+
+            if (lockAge > this.lockMaxAge * 1000) {
+                fs.unlinkSync(this.#lockPath);
+                break;
+            }
+
+            await new Promise(resolve => setImmediate(resolve));
+            if (Date.now() - start > this.#lockTimeout) {
+                throw new Error(`Lock timeout after ${this.#lockTimeout}ms`);
+            }
+            await new Promise(resolve => setTimeout(resolve, this.lockRetryInterval));
+        }
+        
+        try {
+            fs.writeFileSync(this.#lockPath, '', { flag: 'wx' });
+        } catch (error) {
+            if (error.code === 'EEXIST') return this.#acquireLock();
+            throw error;
+        }
+        this.#lockHolder = process.pid;
+    }
+
+    static #releaseLock() {
+        try {
+            if (this.#lockHolder === process.pid) {
+                fs.unlinkSync(this.#lockPath);
+                this.#lockHolder = null;
+            }
+        } catch (error) {
+            console.error('Lock release error:', error);
+        }
+    }
 }
 
 class PerPluginConfig {
     /**
      * Build scoped key based on hierarchy level
      * @param {string} type - 'item', 'folder', or 'library'
-     * @param {string} id - ID of the target entity
+     * @param {string} pathOrId - ID or path of the target entity
      * @param {string} key - Configuration key
      */
-    static #buildKey(type, id, key) {
+    static #buildKey(type, pathOrId, key) {
+        let id = pathOrId;
+        
+        if (type === 'library') {
+            // Use existing getLibraryId function that maintains the map
+            id = getLibraryId(pathOrId);
+        }
+
         return [
             PerPluginConfigInternal.scopeMarker,
             type,
@@ -102,12 +147,16 @@ class PerPluginConfig {
         return PerPluginConfigInternal.setRaw(fullKey, value);
     }
 
-    static async setLibrary(libraryId, key, value) {
-        const fullKey = this.#buildKey('library', libraryId, key);
+    static async setLibrary(libraryPath, key, value) {
+        const fullKey = this.#buildKey('library', libraryPath, key);
         return PerPluginConfigInternal.setRaw(fullKey, value);
     }
 
     static async setGlobal(key, value) {
+        return PerPluginConfigInternal.setRaw(key, value);
+    }
+
+    static async set(key, value) {
         return PerPluginConfigInternal.setRaw(key, value);
     }
 
@@ -122,9 +171,14 @@ class PerPluginConfig {
         return PerPluginConfigInternal.getRaw()[fullKey];
     }
 
-    static async getForLibrary(libraryId, key) {
-        const fullKey = this.#buildKey('library', libraryId, key);
+    static async getForLibrary(libraryPath, key) {
+        const fullKey = this.#buildKey('library', libraryPath, key);
         return PerPluginConfigInternal.getRaw()[fullKey];
+    }
+
+    // Add method to get path from ID
+    static getLibraryPath(id) {
+        return LibraryIDToPath.get(id);
     }
 }
 
