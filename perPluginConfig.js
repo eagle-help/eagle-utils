@@ -86,6 +86,20 @@ class PerPluginConfigInternal {
             console.error('Lock release error:', error);
         }
     }
+
+    static async popRaw(key, options = {}) {
+        await this.#acquireLock();
+        try {
+            const val = this._settingsCache.data[key];
+            delete this._settingsCache.data[key];
+            if (options.save !== false) {  // Default true
+                await this._settingsCache.save();
+            }
+            return val;
+        } finally {
+            this.#releaseLock();
+        }
+    }
 }
 
 class PerPluginConfig {
@@ -180,6 +194,64 @@ class PerPluginConfig {
     // Add method to get path from ID
     static getLibraryPath(id) {
         return LibraryIDToPath.get(id);
+    }
+
+    /**
+     * Pop values across scopes with configurable return behavior
+     * @param {string} key - Key to pop from applicable scopes
+     * @param {object} [context] - Context with itemId, folderId, libraryId
+     * @param {object} [options] - Configuration options
+     * @param {'first'|'all'|'item'|'folder'|'library'|'global'} [options.returnScope='first'] - Return behavior
+     * @param {boolean} [options.save=true] - Whether to persist changes
+     */
+    static async pop(key, context = {}, options = {}) {
+        // Generate scope values in priority order
+        const scopes = {
+            item: context.itemId && this.#buildKey('item', context.itemId, key),
+            folder: context.folderId && this.#buildKey('folder', context.folderId, key),
+            library: context.libraryId && this.#buildKey('library', context.libraryId, key),
+            global: key
+        };
+
+        // Pop values from all existing scopes without saving
+        const results = {};
+        for (const [scopeName, scopeKey] of Object.entries(scopes)) {
+            if (scopeKey) {
+                results[scopeName] = await PerPluginConfigInternal.popRaw(scopeKey, { save: false });
+            }
+        }
+
+        // Determine return value based on options
+        let returnVal;
+        switch(options.returnScope || 'first') {
+            case 'item':
+                returnVal = results.item;
+                break;
+            case 'folder':
+                returnVal = results.folder;
+                break;
+            case 'library':
+                returnVal = results.library;
+                break;
+            case 'global':
+                returnVal = results.global;
+                break;
+            case 'all':
+                returnVal = results;
+                break;
+            case 'first':
+            default:
+                // Return first existing value in priority order
+                returnVal = results.item ?? results.folder ?? results.library ?? results.global;
+                break;
+        }
+
+        // Save once if requested
+        if (options.save !== false) {
+            await PerPluginConfigInternal.save();
+        }
+
+        return returnVal;
     }
 }
 
