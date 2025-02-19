@@ -100,6 +100,16 @@ class PerPluginConfigInternal {
             this.#releaseLock();
         }
     }
+
+    static async save() {
+        await this.#acquireLock();
+        try {
+            await this._settingsCache.save();
+        } finally {
+            this.#releaseLock();
+        }
+    }
+    
 }
 
 class PerPluginConfig {
