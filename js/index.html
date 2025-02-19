@@ -10,6 +10,7 @@
         const path = require('path');
         const {PluginConfig} = require(path.join(path.dirname(eagle.plugin.path), 'utils', 'pluginConfig.js'));
         const {importUtil} = require(path.join(path.dirname(eagle.plugin.path), 'utils', 'app.js'));
+        const {PerPluginConfig} = require(path.join(path.dirname(eagle.plugin.path), 'utils', 'perPluginConfig.js'));
         console.log(eagle);
 
         async function itemSet() {
@@ -72,5 +73,10 @@
         <button onclick="itemGet()">Item Get</button>
     </div>
 
+    <div style="border: 1px solid blue; padding: 10px;">
+        <button onclick="PerPluginConfig.set('test', 1)">Per Plugin Config Set</button>
+        <button onclick="(async () => { console.log(await PerPluginConfig.get('test')) })()">Per Plugin Config Get</button>
+
+    </div>
 </body>
 </html>

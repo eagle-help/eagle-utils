@@ -226,13 +226,32 @@ async function nativeUnzip(src, dest, debug = false) {
     });
 }
 
+const LibraryIDToPath = new Map();
 
+function getLibraryId(path = null){
+    if (!path){
+        path = eagle.library.path;
+    }
+
+    if (LibraryIDToPath.has(path)){
+        return LibraryIDToPath.get(path);
+    }
+
+    const crypto = require('crypto');
+    const hash = crypto.createHash('md5');
+    hash.update(path);
+    const hex = hash.digest('hex');
+    LibraryIDToPath.set(path, hex);
+    return hex;
+}
 
 module.exports = {
     cache,
     JsonCache,
     fnCache,
     overloadStaticGetters,
-    nativeUnzip
+    nativeUnzip,
+    getLibraryId,
+    LibraryIDToPath
 }
 
